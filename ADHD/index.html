@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="description" content="ADHD 친화적 투두 & 재정관리 앱">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Brainflow — ADHD 투두 & 머니</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-card: #13131a;
+  --bg-card-hover: #1a1a24;
+  --bg-elevated: #1e1e2a;
+  --border: #2a2a3a;
+  --text-primary: #f0f0f5;
+  --text-secondary: #8888a0;
+  --text-muted: #55556a;
+  --accent-blue: #6366f1;
+  --accent-blue-glow: rgba(99,102,241,0.3);
+  --accent-green: #10b981;
+  --accent-green-glow: rgba(16,185,129,0.2);
+  --accent-red: #ef4444;
+  --accent-red-glow: rgba(239,68,68,0.2);
+  --accent-yellow: #f59e0b;
+  --accent-purple: #a855f7;
+  --accent-pink: #ec4899;
+  --accent-cyan: #06b6d4;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --shadow-card: 0 2px 12px rgba(0,0,0,0.3);
+  --shadow-modal: 0 -8px 40px rgba(0,0,0,0.6);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { height:100%; }
+body {
+  font-family: 'Inter', 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* Glass Card */
+.glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: var(--shadow-card);
+}
+.card:active { transform:scale(0.985); background:var(--bg-card-hover); }
+
+/* Buttons */
+.btn {
+  border:none; cursor:pointer; font-weight:600; font-size:14px;
+  border-radius: var(--radius-sm); padding:12px 20px;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn:active { transform:scale(0.96); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color:white;
+  box-shadow: 0 4px 20px var(--accent-blue-glow);
+}
+.btn-success { background:var(--accent-green); color:white; box-shadow:0 4px 20px var(--accent-green-glow); }
+.btn-danger { background:var(--accent-red); color:white; }
+.btn-ghost { background:transparent; color:var(--text-secondary); border:1px solid var(--border); }
+.btn-sm { padding:8px 14px; font-size:12px; border-radius:8px; }
+
+/* Input */
+.input {
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-size: 15px;
+  width: 100%;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+.input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--accent-blue-glow);
+}
+.input::placeholder { color:var(--text-muted); }
+
+/* Chip */
+.chip {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:7px 14px; border-radius:20px; font-size:13px; font-weight:500;
+  cursor:pointer; transition:all 0.2s;
+  border:1.5px solid var(--border); color:var(--text-secondary);
+  white-space:nowrap;
+}
+.chip:active { transform:scale(0.95); }
+.chip-active { background:var(--accent-blue); color:white; border-color:var(--accent-blue); }
+
+/* Modal */
+.modal-overlay {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  z-index:200; display:flex; align-items:flex-end; justify-content:center;
+}
+.modal-sheet {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 8px 20px calc(20px + var(--safe-bottom));
+  width:100%; max-width:500px; max-height:88vh; overflow-y:auto;
+  box-shadow: var(--shadow-modal);
+  animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.modal-handle {
+  width:36px; height:4px; background:var(--border); border-radius:2px;
+  margin:0 auto 20px;
+}
+
+/* Tags */
+.tag {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600;
+  letter-spacing:0.02em;
+}
+
+/* Progress */
+.progress { height:6px; border-radius:3px; background:rgba(255,255,255,0.06); overflow:hidden; }
+.progress-fill { height:100%; border-radius:3px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.progress-lg { height:10px; border-radius:5px; }
+
+/* Nav */
+.nav-item {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:6px 0; cursor:pointer; transition:all 0.2s;
+  color:var(--text-muted); font-size:10px; font-weight:600;
+  letter-spacing:0.03em; position:relative;
+  flex:1;
+}
+.nav-item.active { color:var(--accent-blue); }
+.nav-item.active::before {
+  content:''; position:absolute; top:-1px; left:50%; transform:translateX(-50%);
+  width:20px; height:2px; background:var(--accent-blue); border-radius:1px;
+}
+.nav-icon { font-size:22px; line-height:1; }
+
+/* Animations */
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes scaleIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+@keyframes confetti { 0%{transform:translateY(0) rotate(0); opacity:1} 100%{transform:translateY(-100px) rotate(720deg); opacity:0} }
+@keyframes checkPop { 0%{transform:scale(0)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+@keyframes shimmer { 0%{background-position:-200px 0} 100%{background-position:200px 0} }
+@keyframes glow { 0%,100%{box-shadow:0 0 5px var(--accent-blue-glow)} 50%{box-shadow:0 0 20px var(--accent-blue-glow)} }
+.fade-in { animation: fadeIn 0.3s ease; }
+.scale-in { animation: scaleIn 0.3s ease; }
+.check-pop { animation: checkPop 0.3s ease; }
+
+/* Gradient text */
+.gradient-text {
+  background:linear-gradient(135deg,var(--accent-blue),var(--accent-purple),var(--accent-pink));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+/* Stat Card */
+.stat-card {
+  background: var(--bg-card);
+  border:1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding:14px;
+  text-align:center;
+  box-shadow: var(--shadow-card);
+}
+
+/* Donut */
+.donut-ring { fill:none; }
+.donut-segment { fill:none; transition: stroke-dasharray 0.6s ease; }
+
+/* Empty */
+.empty { text-align:center; padding:48px 20px; color:var(--text-muted); }
+
+/* Confetti */
+.confetti-piece {
+  position:fixed; width:8px; height:8px; border-radius:2px; z-index:999;
+  animation: confetti 0.8s ease-out forwards;
+  pointer-events:none;
+}
+
+/* Feature Card */
+.feature-card {
+  background:linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.05));
+  border:1px solid rgba(99,102,241,0.15);
+  border-radius:var(--radius-lg);
+  padding:20px;
+  margin-bottom:12px;
+}
+
+/* Streak */
+.streak-badge {
+  background:linear-gradient(135deg,#f59e0b,#ef4444);
+  color:white; border-radius:20px; padding:5px 14px;
+  font-weight:700; font-size:12px;
+  display:inline-flex; align-items:center; gap:4px;
+  box-shadow:0 4px 12px rgba(245,158,11,0.3);
+}
+
+/* Quick Action */
+.quick-action {
+  background:var(--bg-card); border:1px solid var(--border);
+  border-radius:var(--radius-md); padding:14px;
+  display:flex; align-items:center; gap:12px;
+  cursor:pointer; transition:all 0.2s;
+}
+.quick-action:active { transform:scale(0.98); background:var(--bg-card-hover); }
+
+/* Pomodoro */
+.pomodoro-ring {
+  transition: stroke-dashoffset 1s linear;
+}
+
+/* Number Input stepper hide */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+input[type=number] { -moz-appearance:textfield; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+</script>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } = React;
+
+// ===========================
+// CONSTANTS & UTILITIES
+// ===========================
+const ID = () => Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+const money = (n) => n == null ? '0' : Math.abs(Number(n)).toLocaleString('ko-KR');
+const fmtDate = (d) => { const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; };
+const today = () => new Date().toISOString().split('T')[0];
+const monthKey = (d) => { const dt=new Date(d||Date.now()); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`; };
+const daysBetween = (a,b) => Math.floor((new Date(b)-new Date(a))/(1000*60*60*24));
+
+const TASK_CAT = [
+  { id:'daily', label:'일상', emoji:'🏠', color:'#06b6d4', bg:'rgba(6,182,212,0.12)' },
+  { id:'work', label:'업무', emoji:'💼', color:'#6366f1', bg:'rgba(99,102,241,0.12)' },
+  { id:'health', label:'건강', emoji:'🏃', color:'#10b981', bg:'rgba(16,185,129,0.12)' },
+  { id:'money', label:'재정', emoji:'💰', color:'#f59e0b', bg:'rgba(245,158,11,0.12)' },
+  { id:'study', label:'공부', emoji:'📚', color:'#ec4899', bg:'rgba(236,72,153,0.12)' },
+  { id:'social', label:'사회', emoji:'👥', color:'#a855f7', bg:'rgba(168,85,247,0.12)' },
+];
+
+const EXP_CAT = [
+  { id:'food', label:'식비', emoji:'🍚', color:'#fb923c' },
+  { id:'transport', label:'교통', emoji:'🚇', color:'#06b6d4' },
+  { id:'shopping', label:'쇼핑', emoji:'🛍️', color:'#ec4899' },
+  { id:'cafe', label:'카페', emoji:'☕', color:'#a855f7' },
+  { id:'ent', label:'여가', emoji:'🎮', color:'#10b981' },
+  { id:'health', label:'건강', emoji:'💊', color:'#f59e0b' },
+  { id:'living', label:'생활', emoji:'🏠', color:'#6366f1' },
+  { id:'edu', label:'교육', emoji:'📖', color:'#ef4444' },
+  { id:'etc', label:'기타', emoji:'📦', color:'#64748b' },
+];
+
+// ===========================
+// STORAGE HOOK
+// ===========================
+function useStore(key, init) {
+  const [val, setVal] = useState(() => {
+    try { const v=localStorage.getItem('bf_'+key); return v?JSON.parse(v):init; }
+    catch{ return init; }
+  });
+  useEffect(() => { try{localStorage.setItem('bf_'+key,JSON.stringify(val))}catch{} }, [key,val]);
+  return [val, setVal];
+}
+
+// ===========================
+// ICONS (SVG Components)
+// ===========================
+const Icon = {
+  today: (p={}) => <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+  tasks: (p={}) => <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
+  wallet: (p={}) => <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>,
+  target: (p={}) => <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  split: (p={}) => <svg width={p.s||22} height={p.s||22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20M2 15h20M10 3v18"/></svg>,
+  plus: (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  check: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke={p.c||"currentColor"} strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  trash: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
+  timer: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3l2 2M19 3l-2 2"/></svg>,
+  settings: (p={}) => <svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+  download: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  upload: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+  chart: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
+  x: (p={}) => <svg width={p.s||18} height={p.s||18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  edit: (p={}) => <svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+};
+
+// ===========================
+// CONFETTI COMPONENT
+// ===========================
+function Confetti({ active }) {
+  if(!active) return null;
+  const colors = ['#6366f1','#a855f7','#ec4899','#f59e0b','#10b981','#06b6d4'];
+  return (
+    <>
+      {Array.from({length:12}).map((_,i) => (
+        <div key={i} className="confetti-piece" style={{
+          left: `${30+Math.random()*40}%`,
+          top: `${40+Math.random()*20}%`,
+          background: colors[i%colors.length],
+          animationDelay: `${i*0.05}s`,
+          transform: `rotate(${Math.random()*360}deg)`,
+        }} />
+      ))}
+    </>
+  );
+}
+
+// ===========================
+// DONUT CHART
+// ===========================
+function DonutChart({ data, size=120, thickness=14 }) {
+  const r = (size-thickness)/2;
+  const c = 2*Math.PI*r;
+  const total = data.reduce((s,d)=>s+d.value,0);
+  let offset = 0;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={thickness} />
+      {data.map((d,i) => {
+        const pct = total>0 ? d.value/total : 0;
+        const dash = pct*c;
+        const el = (
+          <circle key={i} cx={size/2} cy={size/2} r={r} fill="none"
+            stroke={d.color} strokeWidth={thickness} strokeLinecap="round"
+            strokeDasharray={`${dash} ${c-dash}`}
+            strokeDashoffset={-offset}
+            transform={`rotate(-90 ${size/2} ${size/2})`}
+            className="donut-segment"
+          />
+        );
+        offset += dash;
+        return el;
+      })}
+      <text x={size/2} y={size/2-6} textAnchor="middle" fill="var(--text-primary)" fontSize="18" fontWeight="800">{money(total)}</text>
+      <text x={size/2} y={size/2+12} textAnchor="middle" fill="var(--text-muted)" fontSize="10">총 지출</text>
+    </svg>
+  );
+}
+
+// ===========================
+// MINI BAR CHART
+// ===========================
+function MiniBarChart({ data, height=80 }) {
+  const max = Math.max(...data.map(d=>d.value), 1);
+  return (
+    <div style={{display:'flex',alignItems:'flex-end',gap:3,height,padding:'0 4px'}}>
+      {data.map((d,i) => (
+        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+          <div style={{
+            width:'100%', maxWidth:28,
+            height:`${Math.max(4,(d.value/max)*height*0.8)}px`,
+            background: d.isCurrentMonth ? 'linear-gradient(180deg,var(--accent-blue),var(--accent-purple))' : 'rgba(255,255,255,0.06)',
+            borderRadius:4, transition:'height 0.5s ease',
+          }} />
+          <span style={{fontSize:9,color:'var(--text-muted)'}}>{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===========================
+// POMODORO TIMER
+// ===========================
+function PomodoroTimer({ taskTitle, onClose }) {
+  const [seconds, setSeconds] = useState(25*60);
+  const [running, setRunning] = useState(false);
+  const [mode, setMode] = useState('work'); // work | break
+  const intervalRef = useRef(null);
+  const total = mode==='work' ? 25*60 : 5*60;
+  const pct = seconds/total;
+
+  useEffect(() => {
+    if(running) {
+      intervalRef.current = setInterval(() => {
+        setSeconds(s => {
+          if(s <= 1) {
+            setRunning(false);
+            if(mode==='work') { setMode('break'); return 5*60; }
+            else { setMode('work'); return 25*60; }
+          }
+          return s-1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [running, mode]);
+
+  const min = Math.floor(seconds/60);
+  const sec = seconds%60;
+  const r=50, c=2*Math.PI*r;
+
+  return (
+    <div className="card" style={{padding:20,textAlign:'center'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:600,color:mode==='work'?'var(--accent-blue)':'var(--accent-green)'}}>
+          {mode==='work'?'🎯 집중 모드':'☕ 휴식 모드'}
+        </div>
+        <div style={{cursor:'pointer',color:'var(--text-muted)'}} onClick={onClose}>{Icon.x()}</div>
+      </div>
+      {taskTitle && <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:12}}>"{taskTitle}"</div>}
+      <svg width="140" height="140" viewBox="0 0 120 120" style={{margin:'0 auto',display:'block'}}>
+        <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="8"/>
+        <circle cx="60" cy="60" r={r} fill="none"
+          stroke={mode==='work'?'var(--accent-blue)':'var(--accent-green)'}
+          strokeWidth="8" strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={c*(1-pct)}
+          transform="rotate(-90 60 60)"
+          className="pomodoro-ring"
+        />
+        <text x="60" y="56" textAnchor="middle" fill="var(--text-primary)" fontSize="28" fontWeight="800">{min}</text>
+        <text x="60" y="72" textAnchor="middle" fill="var(--text-muted)" fontSize="12">{String(sec).padStart(2,'0')}</text>
+      </svg>
+      <div style={{display:'flex',gap:8,marginTop:16,justifyContent:'center'}}>
+        <button className={`btn ${running?'btn-danger':'btn-primary'}`} onClick={()=>setRunning(!running)}>
+          {running?'⏸ 일시정지':'▶ 시작'}
+        </button>
+        <button className="btn btn-ghost" onClick={()=>{setSeconds(mode==='work'?25*60:5*60);setRunning(false)}}>↻ 리셋</button>
+      </div>
+    </div>
+  );
+}
+
+// ===========================
+// ONBOARDING
+// ===========================
+function Onboarding({ onComplete }) {
+  const [step, setStep] = useState(0);
+  const steps = [
+    { emoji:'🧠', title:'ADHD 브레인에 오신 걸 환영해요', desc:'ADHD가 있어도 할 일과 돈 관리를\n쉽게 할 수 있도록 설계했어요.' },
+    { emoji:'🎯', title:'오늘 3개만 집중', desc:'매일 할 일 3개만 선택하세요.\n나머지는 내일의 나에게 맡기면 됩니다.' },
+    { emoji:'💰', title:'원탭으로 지출 기록', desc:'카테고리 탭 한 번, 금액 한 번.\n최소한의 마찰로 기록합니다.' },
+    { emoji:'🐷', title:'목표를 세우고 모아가기', desc:'비상금, 여행, 전자기기...\n진행률을 보며 동기부여 받으세요.' },
+  ];
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:32,textAlign:'center'}}>
+      <div className="scale-in" key={step}>
+        <div style={{fontSize:72,marginBottom:24}}>{steps[step].emoji}</div>
+        <div style={{fontSize:22,fontWeight:800,marginBottom:12,lineHeight:1.3}}>{steps[step].title}</div>
+        <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.7,whiteSpace:'pre-line'}}>{steps[step].desc}</div>
+      </div>
+
+      {/* Dots */}
+      <div style={{display:'flex',justifyContent:'center',gap:8,margin:'32px 0'}}>
+        {steps.map((_,i) => (
+          <div key={i} style={{
+            width:i===step?24:8, height:8, borderRadius:4,
+            background:i===step?'var(--accent-blue)':'var(--border)',
+            transition:'all 0.3s'
+          }} />
+        ))}
+      </div>
+
+      <button className="btn btn-primary" style={{width:'100%',padding:16,fontSize:16}} onClick={()=>{
+        if(step < steps.length-1) setStep(step+1);
+        else onComplete();
+      }}>
+        {step < steps.length-1 ? '다음' : '시작하기 →'}
+      </button>
+
+      {step < steps.length-1 && (
+        <div style={{marginTop:12,fontSize:13,color:'var(--text-muted)',cursor:'pointer'}} onClick={onComplete}>건너뛰기</div>
+      )}
+    </div>
+  );
+}
+
+// ===========================
+// MAIN APP
+// ===========================
+function App() {
+  const [onboarded, setOnboarded] = useStore('onboarded', false);
+  const [tab, setTab] = useState('today');
+  const [tasks, setTasks] = useStore('tasks', []);
+  const [txns, setTxns] = useStore('txns', []);
+  const [fixed, setFixed] = useStore('fixed', []);
+  const [goals, setGoals] = useStore('goals', []);
+  const [splits, setSplits] = useStore('splits', { salary:0, accounts:[] });
+  const [streak, setStreak] = useStore('streak', { count:0, last:null });
+  const [modal, setModal] = useState(null);
+  const [confetti, setConfetti] = useState(false);
+  const [pomodoroTask, setPomodoroTask] = useState(null);
+
+  // Streak
+  const updateStreak = useCallback(() => {
+    const t = today();
+    const y = new Date(Date.now()-86400000).toISOString().split('T')[0];
+    setStreak(p => {
+      if(p.last===t) return p;
+      if(p.last===y) return {count:p.count+1,last:t};
+      return {count:1,last:t};
+    });
+  }, []);
+
+  // Task CRUD
+  const addTask = useCallback((t) => setTasks(p=>[...p,{id:ID(),...t,done:false,created:Date.now()}]), []);
+  const doneTask = useCallback((id) => {
+    setTasks(p=>p.map(t=>t.id===id?{...t,done:true,doneAt:Date.now()}:t));
+    updateStreak();
+    setConfetti(true);
+    setTimeout(()=>setConfetti(false),800);
+  }, [updateStreak]);
+  const undoTask = useCallback((id) => setTasks(p=>p.map(t=>t.id===id?{...t,done:false,doneAt:null}:t)), []);
+  const delTask = useCallback((id) => setTasks(p=>p.filter(t=>t.id!==id)), []);
+  const editTask = useCallback((id, upd) => setTasks(p=>p.map(t=>t.id===id?{...t,...upd}:t)), []);
+
+  // Txn CRUD
+  const addTxn = useCallback((t) => setTxns(p=>[...p,{id:ID(),...t,date:t.date||today(),created:Date.now()}]), []);
+  const delTxn = useCallback((id) => setTxns(p=>p.filter(t=>t.id!==id)), []);
+
+  // Fixed CRUD
+  const addFixed = useCallback((e) => setFixed(p=>[...p,{id:ID(),...e}]), []);
+  const delFixed = useCallback((id) => setFixed(p=>p.filter(e=>e.id!==id)), []);
+
+  // Goal CRUD
+  const addGoal = useCallback((g) => setGoals(p=>[...p,{id:ID(),...g,saved:0,created:Date.now()}]), []);
+  const saveGoal = useCallback((id,amt) => setGoals(p=>p.map(g=>g.id===id?{...g,saved:Math.max(0,g.saved+amt)}:g)), []);
+  const delGoal = useCallback((id) => setGoals(p=>p.filter(g=>g.id!==id)), []);
+
+  // Computed
+  const mk = monthKey();
+  const mTxns = useMemo(()=>txns.filter(t=>monthKey(t.date)===mk),[txns,mk]);
+  const mInc = useMemo(()=>mTxns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),[mTxns]);
+  const mExp = useMemo(()=>mTxns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),[mTxns]);
+  const totFixed = useMemo(()=>fixed.reduce((s,e)=>s+e.amount,0),[fixed]);
+
+  const todayTasks = useMemo(() => {
+    const t = today();
+    return tasks.filter(x=>!x.done&&(!x.due||x.due<=t))
+      .sort((a,b)=>(b.priority||0)-(a.priority||0))
+      .slice(0,3);
+  },[tasks]);
+
+  const todayDone = useMemo(() => {
+    const t = today();
+    return tasks.filter(x=>x.done&&x.doneAt&&new Date(x.doneAt).toISOString().split('T')[0]===t);
+  },[tasks]);
+
+  // Data backup
+  const exportData = useCallback(() => {
+    const data = { tasks, txns, fixed, goals, splits, streak, exported:new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`brainflow-backup-${today()}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }, [tasks,txns,fixed,goals,splits,streak]);
+
+  const importData = useCallback((json) => {
+    try {
+      const d = JSON.parse(json);
+      if(d.tasks) setTasks(d.tasks);
+      if(d.txns) setTxns(d.txns);
+      if(d.fixed) setFixed(d.fixed);
+      if(d.goals) setGoals(d.goals);
+      if(d.splits) setSplits(d.splits);
+      if(d.streak) setStreak(d.streak);
+      return true;
+    } catch{ return false; }
+  }, []);
+
+  if(!onboarded) return <Onboarding onComplete={()=>setOnboarded(true)} />;
+
+  const TABS = [
+    { id:'today', label:'오늘', icon:Icon.today },
+    { id:'tasks', label:'할일', icon:Icon.tasks },
+    { id:'money', label:'가계부', icon:Icon.wallet },
+    { id:'goal', label:'목표', icon:Icon.target },
+    { id:'split', label:'쪼개기', icon:Icon.split },
+  ];
+
+  return (
+    <div style={{maxWidth:500,margin:'0 auto',minHeight:'100vh',display:'flex',flexDirection:'column',position:'relative'}}>
+      <Confetti active={confetti} />
+
+      {/* HEADER */}
+      <header style={{padding:'16px 20px 8px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:800,display:'flex',alignItems:'center',gap:6}}>
+            <span className="gradient-text">Brainflow</span>
+          </div>
+          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2,fontWeight:500}}>
+            {new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'long'})}
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          {streak.count>0 && <span className="streak-badge">🔥 {streak.count}일</span>}
+          <div style={{cursor:'pointer',color:'var(--text-muted)',padding:4}} onClick={()=>setModal('settings')}>{Icon.settings()}</div>
+        </div>
+      </header>
+
+      {/* CONTENT */}
+      <main style={{flex:1,padding:'8px 16px 100px',overflow:'auto'}}>
+        {tab==='today' && <TodayTab tasks={todayTasks} done={todayDone} allPending={tasks.filter(t=>!t.done).length} onDone={doneTask} onUndo={undoTask} onAdd={()=>setModal('task')} onAddTxn={()=>setModal('txn')} mInc={mInc} mExp={mExp} totFixed={totFixed} onPomodoro={(t)=>setPomodoroTask(t)} pomodoroTask={pomodoroTask} onPomodoroClose={()=>setPomodoroTask(null)} />}
+        {tab==='tasks' && <TasksTab tasks={tasks} onDone={doneTask} onUndo={undoTask} onDel={delTask} onAdd={()=>setModal('task')} onEdit={editTask} />}
+        {tab==='money' && <MoneyTab txns={txns} mTxns={mTxns} mInc={mInc} mExp={mExp} fixed={fixed} totFixed={totFixed} onAddTxn={()=>setModal('txn')} onAddFixed={()=>setModal('fixed')} onDelTxn={delTxn} onDelFixed={delFixed} allTxns={txns} />}
+        {tab==='goal' && <GoalTab goals={goals} onAdd={()=>setModal('goal')} onSave={saveGoal} onDel={delGoal} />}
+        {tab==='split' && <SplitTab splits={splits} setSplits={setSplits} />}
+      </main>
+
+      {/* BOTTOM NAV */}
+      <nav style={{
+        position:'fixed',bottom:0,left:0,right:0,
+        background:'rgba(10,10,15,0.92)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',
+        borderTop:'1px solid rgba(255,255,255,0.05)',
+        padding:'2px 0',paddingBottom:'max(4px, var(--safe-bottom))',zIndex:50,
+      }}>
+        <div style={{maxWidth:500,margin:'0 auto',display:'flex'}}>
+          {TABS.map(t => (
+            <div key={t.id} className={`nav-item ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+              <span className="nav-icon">{t.icon()}</span>
+              <span>{t.label}</span>
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      {/* MODALS */}
+      {modal==='task' && <TaskModal onAdd={addTask} onClose={()=>setModal(null)} />}
+      {modal==='txn' && <TxnModal onAdd={addTxn} onClose={()=>setModal(null)} />}
+      {modal==='fixed' && <FixedModal onAdd={addFixed} onClose={()=>setModal(null)} />}
+      {modal==='goal' && <GoalModal onAdd={addGoal} onClose={()=>setModal(null)} />}
+      {modal==='settings' && <SettingsModal onClose={()=>setModal(null)} onExport={exportData} onImport={importData} onReset={()=>{setOnboarded(false);setModal(null);}} />}
+    </div>
+  );
+}
+
+// ===========================
+// TODAY TAB
+// ===========================
+function TodayTab({ tasks, done, allPending, onDone, onUndo, onAdd, onAddTxn, mInc, mExp, totFixed, onPomodoro, pomodoroTask, onPomodoroClose }) {
+  return (
+    <div className="fade-in">
+      {/* Quick Stats */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:16}}>
+        <div className="stat-card">
+          <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:600,letterSpacing:'0.05em'}}>수입</div>
+          <div style={{fontSize:15,fontWeight:800,color:'var(--accent-green)',marginTop:3}}>+{money(mInc)}</div>
+        </div>
+        <div className="stat-card">
+          <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:600,letterSpacing:'0.05em'}}>지출</div>
+          <div style={{fontSize:15,fontWeight:800,color:'var(--accent-red)',marginTop:3}}>-{money(mExp)}</div>
+        </div>
+        <div className="stat-card">
+          <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:600,letterSpacing:'0.05em'}}>고정</div>
+          <div style={{fontSize:15,fontWeight:800,color:'var(--accent-yellow)',marginTop:3}}>{money(totFixed)}</div>
+        </div>
+      </div>
+
+      {/* Pomodoro */}
+      {pomodoroTask && <PomodoroTimer taskTitle={pomodoroTask} onClose={onPomodoroClose} />}
+
+      {/* Today Focus */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:12}}>
+        <div>
+          <div style={{fontSize:16,fontWeight:800}}>오늘 집중할 것</div>
+          <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>3개만. 나머지는 내일의 나에게.</div>
+        </div>
+        <div style={{fontSize:11,color:'var(--text-muted)'}}>대기 {allPending}개</div>
+      </div>
+
+      {tasks.length===0 && done.length===0 ? (
+        <div className="empty">
+          <div style={{fontSize:48,marginBottom:16}}>🎉</div>
+          <div style={{fontWeight:700,fontSize:15,color:'var(--text-primary)'}}>오늘 할 일이 없어요!</div>
+          <div style={{fontSize:13,marginTop:6}}>추가하거나, 이대로 쉬세요</div>
+          <button className="btn btn-primary" style={{marginTop:20}} onClick={onAdd}>{Icon.plus()} 할 일 추가</button>
+        </div>
+      ) : (
+        <>
+          {tasks.map((task,i) => {
+            const cat = TASK_CAT.find(c=>c.id===task.cat);
+            return (
+              <div key={task.id} className="card fade-in" style={{display:'flex',alignItems:'center',gap:14,cursor:'pointer'}} onClick={()=>onDone(task.id)}>
+                <div style={{
+                  width:36,height:36,borderRadius:12,
+                  background:`linear-gradient(135deg,${cat?.color||'var(--accent-blue)'}22,${cat?.color||'var(--accent-blue)'}11)`,
+                  border:`1.5px solid ${cat?.color||'var(--accent-blue)'}44`,
+                  display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,
+                  fontSize:16,
+                }}>
+                  {i===0?'1️⃣':i===1?'2️⃣':'3️⃣'}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:14}}>{task.title}</div>
+                  <div style={{display:'flex',gap:6,marginTop:4,alignItems:'center',flexWrap:'wrap'}}>
+                    {cat && <span className="tag" style={{background:cat.bg,color:cat.color}}>{cat.emoji} {cat.label}</span>}
+                    {task.time && <span style={{fontSize:11,color:'var(--text-muted)'}}>⏱ {task.time}분</span>}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:6,flexShrink:0}}>
+                  {task.time && (
+                    <div style={{
+                      width:30,height:30,borderRadius:8,background:'rgba(99,102,241,0.1)',
+                      display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
+                      color:'var(--accent-blue)',
+                    }} onClick={(e)=>{e.stopPropagation();onPomodoro(task.title)}}>
+                      {Icon.timer({s:14})}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {done.length>0 && (
+            <div style={{marginTop:16}}>
+              <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginBottom:8}}>✅ 오늘 완료 ({done.length})</div>
+              {done.map(task => (
+                <div key={task.id} className="card" style={{opacity:0.5,display:'flex',alignItems:'center',gap:12,padding:12}} onClick={()=>onUndo(task.id)}>
+                  <div className="check-pop" style={{width:28,height:28,borderRadius:8,background:'var(--accent-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {Icon.check({c:'white',s:14})}
+                  </div>
+                  <div style={{textDecoration:'line-through',flex:1,fontSize:13}}>{task.title}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tasks.length<3 && (
+            <button className="btn btn-primary" style={{width:'100%',marginTop:10}} onClick={onAdd}>{Icon.plus()} 할 일 추가</button>
+          )}
+        </>
+      )}
+
+      {/* Quick Actions */}
+      <div style={{marginTop:20}}>
+        <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginBottom:8}}>빠른 기록</div>
+        <div className="quick-action" onClick={onAddTxn}>
+          <div style={{width:36,height:36,borderRadius:10,background:'rgba(239,68,68,0.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>💸</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600}}>지출 기록</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>방금 쓴 돈 바로 기록</div>
+          </div>
+          <div style={{color:'var(--text-muted)'}}>{Icon.plus()}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================
+// TASKS TAB
+// ===========================
+function TasksTab({ tasks, onDone, onUndo, onDel, onAdd, onEdit }) {
+  const [filter, setFilter] = useState('all');
+  const pending = tasks.filter(t=>!t.done);
+  const done = tasks.filter(t=>t.done);
+  const filtered = filter==='all' ? pending : pending.filter(t=>t.cat===filter);
+
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:800}}>전체 할 일</div>
+        <button className="btn btn-primary btn-sm" onClick={onAdd}>{Icon.plus({s:14})} 추가</button>
+      </div>
+
+      <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,marginBottom:12,scrollbarWidth:'none'}}>
+        <span className={`chip ${filter==='all'?'chip-active':''}`} onClick={()=>setFilter('all')}>전체 ({pending.length})</span>
+        {TASK_CAT.map(cat => {
+          const cnt = pending.filter(t=>t.cat===cat.id).length;
+          return cnt>0 ? (
+            <span key={cat.id} className={`chip ${filter===cat.id?'chip-active':''}`} onClick={()=>setFilter(cat.id)}
+              style={filter===cat.id?{}:{borderColor:`${cat.color}66`,color:cat.color}}>
+              {cat.emoji} {cat.label} ({cnt})
+            </span>
+          ) : null;
+        })}
+      </div>
+
+      {filtered.length===0 ? (
+        <div className="empty"><div style={{fontSize:40,marginBottom:12}}>✨</div><div>할 일이 없어요</div></div>
+      ) : (
+        filtered.map(task => {
+          const cat = TASK_CAT.find(c=>c.id===task.cat);
+          return (
+            <div key={task.id} className="card" style={{display:'flex',alignItems:'center',gap:12}}>
+              <div style={{
+                width:30,height:30,borderRadius:10,
+                border:`2px solid ${cat?.color||'var(--border)'}44`,
+                display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer',
+                transition:'all 0.2s',
+              }} onClick={()=>onDone(task.id)}>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:500,fontSize:14}}>{task.title}</div>
+                <div style={{display:'flex',gap:6,marginTop:3,alignItems:'center',flexWrap:'wrap'}}>
+                  {cat && <span className="tag" style={{background:cat.bg,color:cat.color}}>{cat.emoji} {cat.label}</span>}
+                  {task.time && <span style={{fontSize:11,color:'var(--text-muted)'}}>⏱ {task.time}분</span>}
+                  {task.due && <span style={{fontSize:11,color:'var(--text-muted)'}}>📅 {fmtDate(task.due)}</span>}
+                  {task.priority===3 && <span style={{fontSize:11,color:'var(--accent-red)'}}>🔴</span>}
+                </div>
+              </div>
+              <div style={{cursor:'pointer',color:'var(--text-muted)',padding:6}} onClick={()=>onDel(task.id)}>{Icon.trash()}</div>
+            </div>
+          );
+        })
+      )}
+
+      {done.length>0 && (
+        <details style={{marginTop:20}}>
+          <summary style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',cursor:'pointer',marginBottom:8}}>완료됨 ({done.length})</summary>
+          {done.slice(-10).reverse().map(task => (
+            <div key={task.id} className="card" style={{opacity:0.4,display:'flex',alignItems:'center',gap:12,padding:12}}>
+              <div style={{width:24,height:24,borderRadius:8,background:'var(--accent-green)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer'}} onClick={()=>onUndo(task.id)}>
+                {Icon.check({c:'white',s:12})}
+              </div>
+              <div style={{textDecoration:'line-through',flex:1,fontSize:13}}>{task.title}</div>
+              <div style={{cursor:'pointer',color:'var(--text-muted)',padding:4}} onClick={()=>onDel(task.id)}>{Icon.trash({s:14})}</div>
+            </div>
+          ))}
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ===========================
+// MONEY TAB
+// ===========================
+function MoneyTab({ txns, mTxns, mInc, mExp, fixed, totFixed, onAddTxn, onAddFixed, onDelTxn, onDelFixed, allTxns }) {
+  const [sub, setSub] = useState('overview');
+  const balance = mInc - mExp;
+
+  const catBreak = useMemo(() => {
+    const m={};
+    mTxns.filter(t=>t.type==='expense').forEach(t=>{if(!m[t.cat])m[t.cat]=0;m[t.cat]+=t.amount;});
+    return Object.entries(m).map(([id,amt])=>({
+      ...(EXP_CAT.find(c=>c.id===id)||{id,label:id,emoji:'📦',color:'#64748b'}),
+      value:amt
+    })).sort((a,b)=>b.value-a.value);
+  },[mTxns]);
+
+  // Last 6 months bar chart
+  const monthBars = useMemo(() => {
+    const bars = [];
+    for(let i=5;i>=0;i--) {
+      const d = new Date(); d.setMonth(d.getMonth()-i);
+      const mk = monthKey(d);
+      const exp = allTxns.filter(t=>t.type==='expense'&&monthKey(t.date)===mk).reduce((s,t)=>s+t.amount,0);
+      bars.push({ label:`${d.getMonth()+1}월`, value:exp, isCurrentMonth:i===0 });
+    }
+    return bars;
+  },[allTxns]);
+
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',gap:6,marginBottom:16}}>
+        {[{id:'overview',l:'요약'},{id:'history',l:'내역'},{id:'fixed',l:'고정지출'},{id:'chart',l:'분석'}].map(t => (
+          <span key={t.id} className={`chip ${sub===t.id?'chip-active':''}`} onClick={()=>setSub(t.id)} style={{fontSize:12}}>{t.l}</span>
+        ))}
+      </div>
+
+      {sub==='overview' && (
+        <>
+          <div className="card" style={{textAlign:'center',padding:24,background:'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(168,85,247,0.04))',borderColor:'rgba(99,102,241,0.15)'}}>
+            <div style={{fontSize:11,color:'var(--text-muted)',fontWeight:600}}>이번 달 잔액</div>
+            <div style={{fontSize:30,fontWeight:900,color:balance>=0?'var(--accent-green)':'var(--accent-red)',marginTop:6}}>
+              {balance>=0?'+':''}{money(balance)}원
+            </div>
+            <div style={{display:'flex',justifyContent:'center',gap:20,marginTop:14,fontSize:13}}>
+              <span style={{color:'var(--accent-green)'}}>수입 +{money(mInc)}</span>
+              <span style={{color:'var(--accent-red)'}}>지출 -{money(mExp)}</span>
+            </div>
+          </div>
+
+          {catBreak.length>0 && (
+            <div style={{display:'flex',gap:16,marginTop:16,alignItems:'center'}}>
+              <DonutChart data={catBreak} />
+              <div style={{flex:1}}>
+                {catBreak.slice(0,5).map(cat => (
+                  <div key={cat.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                    <div style={{width:8,height:8,borderRadius:4,background:cat.color,flexShrink:0}} />
+                    <span style={{fontSize:12,flex:1}}>{cat.emoji} {cat.label}</span>
+                    <span style={{fontSize:12,fontWeight:600,color:cat.color}}>{money(cat.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button className="btn btn-primary" style={{width:'100%',marginTop:16}} onClick={onAddTxn}>{Icon.plus()} 수입/지출 기록</button>
+        </>
+      )}
+
+      {sub==='history' && (
+        <>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <div style={{fontSize:14,fontWeight:700}}>최근 내역</div>
+            <button className="btn btn-primary btn-sm" onClick={onAddTxn}>{Icon.plus({s:14})} 추가</button>
+          </div>
+          {mTxns.length===0 ? (
+            <div className="empty"><div style={{fontSize:40,marginBottom:12}}>📊</div><div>아직 기록이 없어요</div></div>
+          ) : (
+            [...mTxns].reverse().map(tx => {
+              const cat = EXP_CAT.find(c=>c.id===tx.cat);
+              return (
+                <div key={tx.id} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:12}}>
+                  <span style={{fontSize:20}}>{cat?.emoji||'💰'}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:500}}>{tx.memo||cat?.label||'기타'}</div>
+                    <div style={{fontSize:11,color:'var(--text-muted)'}}>{fmtDate(tx.date)}</div>
+                  </div>
+                  <div style={{fontSize:14,fontWeight:700,color:tx.type==='income'?'var(--accent-green)':'var(--accent-red)'}}>
+                    {tx.type==='income'?'+':'-'}{money(tx.amount)}
+                  </div>
+                  <div style={{cursor:'pointer',color:'var(--text-muted)',padding:4}} onClick={()=>onDelTxn(tx.id)}>{Icon.trash({s:14})}</div>
+                </div>
+              );
+            })
+          )}
+        </>
+      )}
+
+      {sub==='fixed' && (
+        <>
+          <div className="card" style={{textAlign:'center',padding:20,background:'linear-gradient(135deg,rgba(245,158,11,0.06),rgba(239,68,68,0.04))',borderColor:'rgba(245,158,11,0.15)'}}>
+            <div style={{fontSize:11,color:'var(--text-muted)',fontWeight:600}}>월 고정지출 합계</div>
+            <div style={{fontSize:26,fontWeight:900,color:'var(--accent-yellow)',marginTop:6}}>{money(totFixed)}원</div>
+          </div>
+          {fixed.map(exp => (
+            <div key={exp.id} className="card" style={{display:'flex',alignItems:'center',gap:12,padding:14}}>
+              <div style={{width:4,height:36,borderRadius:2,background:'var(--accent-yellow)',flexShrink:0}} />
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600}}>{exp.name}</div>
+                <div style={{fontSize:11,color:'var(--text-muted)'}}>매월 {exp.day}일</div>
+              </div>
+              <div style={{fontSize:14,fontWeight:700}}>{money(exp.amount)}원</div>
+              <div style={{cursor:'pointer',color:'var(--text-muted)',padding:4}} onClick={()=>onDelFixed(exp.id)}>{Icon.trash({s:14})}</div>
+            </div>
+          ))}
+          <button className="btn btn-primary" style={{width:'100%',marginTop:8}} onClick={onAddFixed}>{Icon.plus()} 고정지출 추가</button>
+        </>
+      )}
+
+      {sub==='chart' && (
+        <>
+          <div className="card" style={{padding:20}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:16}}>월별 지출 추이</div>
+            <MiniBarChart data={monthBars} height={100} />
+          </div>
+
+          {catBreak.length>0 && (
+            <div className="card" style={{padding:16,marginTop:4}}>
+              <div style={{fontSize:13,fontWeight:700,marginBottom:12}}>카테고리별 지출</div>
+              {catBreak.map(cat => (
+                <div key={cat.id} style={{marginBottom:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+                    <span>{cat.emoji} {cat.label}</span>
+                    <span style={{fontWeight:600,color:cat.color}}>{money(cat.value)}원 ({mExp>0?Math.round(cat.value/mExp*100):0}%)</span>
+                  </div>
+                  <div className="progress">
+                    <div className="progress-fill" style={{width:`${mExp>0?Math.round(cat.value/mExp*100):0}%`,background:cat.color}} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ===========================
+// GOAL TAB
+// ===========================
+function GoalTab({ goals, onAdd, onSave, onDel }) {
+  const [saving, setSaving] = useState(null);
+  const [amt, setAmt] = useState('');
+
+  const handleSave = (id, val) => {
+    const n = parseInt(val);
+    if(n>0) { onSave(id,n); setSaving(null); setAmt(''); }
+  };
+
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <div style={{fontSize:16,fontWeight:800}}>🎯 저축 목표</div>
+        <button className="btn btn-primary btn-sm" onClick={onAdd}>{Icon.plus({s:14})} 추가</button>
+      </div>
+
+      {goals.length===0 ? (
+        <div className="empty">
+          <div style={{fontSize:48,marginBottom:16}}>🐷</div>
+          <div style={{fontWeight:700,fontSize:15,color:'var(--text-primary)'}}>목표를 세워볼까요?</div>
+          <div style={{fontSize:13,marginTop:6}}>비상금, 여행, 전자기기 등</div>
+          <button className="btn btn-primary" style={{marginTop:20}} onClick={onAdd}>첫 번째 목표</button>
+        </div>
+      ) : (
+        goals.map(g => {
+          const pct = g.target>0 ? Math.min(100,Math.round(g.saved/g.target*100)) : 0;
+          const rem = Math.max(0,g.target-g.saved);
+          const done = pct>=100;
+          return (
+            <div key={g.id} className="card" style={{padding:18}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div style={{fontSize:15,fontWeight:700}}>{g.emoji||'🎯'} {g.name}</div>
+                <div style={{display:'flex',gap:6}}>
+                  {done && <span style={{fontSize:12,background:'var(--accent-green)',color:'white',padding:'2px 8px',borderRadius:6,fontWeight:700}}>달성!</span>}
+                  <div style={{cursor:'pointer',color:'var(--text-muted)',padding:2}} onClick={()=>onDel(g.id)}>{Icon.trash({s:14})}</div>
+                </div>
+              </div>
+
+              <div className="progress progress-lg" style={{marginTop:14}}>
+                <div className="progress-fill" style={{width:`${pct}%`,background:done?'var(--accent-green)':'linear-gradient(90deg,var(--accent-blue),var(--accent-purple))'}} />
+              </div>
+
+              <div style={{display:'flex',justifyContent:'space-between',marginTop:8,fontSize:13}}>
+                <span style={{color:'var(--text-muted)'}}>{money(g.saved)} / {money(g.target)}원</span>
+                <span style={{fontWeight:700,color:done?'var(--accent-green)':'var(--accent-blue)'}}>{pct}%</span>
+              </div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>남은 금액: {money(rem)}원</div>
+
+              {saving===g.id ? (
+                <div className="fade-in" style={{marginTop:12,padding:12,background:'var(--bg-primary)',borderRadius:10}}>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:8}}>
+                    {[10000,50000,100000,500000].map(a => (
+                      <span key={a} className="chip" style={{fontSize:11}} onClick={()=>handleSave(g.id,a)}>+{money(a)}</span>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',gap:8}}>
+                    <input className="input" type="number" placeholder="직접 입력" value={amt} onChange={e=>setAmt(e.target.value)} style={{flex:1,padding:10,fontSize:14}} />
+                    <button className="btn btn-success btn-sm" onClick={()=>handleSave(g.id,amt)}>저축</button>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>setSaving(null)}>취소</button>
+                  </div>
+                </div>
+              ) : (
+                <button className="btn btn-primary" style={{width:'100%',marginTop:12,padding:11}} onClick={()=>setSaving(g.id)}>💰 저축하기</button>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+// ===========================
+// SPLIT TAB
+// ===========================
+function SplitTab({ splits, setSplits }) {
+  const [salary, setSalary] = useState(splits.salary||'');
+  const [accts, setAccts] = useState(splits.accounts.length>0 ? splits.accounts : [
+    {name:'생활비',pct:50,color:'#06b6d4'},{name:'저축',pct:30,color:'#10b981'},
+    {name:'투자',pct:10,color:'#6366f1'},{name:'비상금',pct:10,color:'#f59e0b'},
+  ]);
+  const salNum = parseInt(salary)||0;
+  const totPct = accts.reduce((s,a)=>s+a.pct,0);
+
+  const save = () => setSplits({salary:salNum,accounts:accts});
+  const upd = (i,f,v) => setAccts(p=>p.map((a,j)=>j===i?{...a,[f]:f==='pct'?parseInt(v)||0:v}:a));
+
+  return (
+    <div className="fade-in">
+      <div style={{fontSize:16,fontWeight:800,marginBottom:4}}>💳 통장 쪼개기</div>
+      <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:16}}>월급 들어오면 어떻게 나눌지 세팅</div>
+
+      <div className="card" style={{padding:16}}>
+        <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>월 수입 (세후)</div>
+        <input className="input" type="number" placeholder="예: 3000000" value={salary} onChange={e=>setSalary(e.target.value)} style={{fontSize:18,fontWeight:700}} />
+      </div>
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:16,marginBottom:8}}>
+        <span style={{fontSize:14,fontWeight:700}}>통장별 비율</span>
+        <span style={{fontSize:12,fontWeight:600,color:totPct===100?'var(--accent-green)':'var(--accent-red)'}}>{totPct}% / 100%</span>
+      </div>
+
+      {accts.map((a,i) => (
+        <div key={i} className="card" style={{padding:14}}>
+          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+            <div style={{width:4,height:48,borderRadius:2,background:a.color,flexShrink:0}} />
+            <div style={{flex:1}}>
+              <input className="input" value={a.name} onChange={e=>upd(i,'name',e.target.value)} style={{marginBottom:6,padding:'8px 12px',fontSize:13}} />
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <input className="input" type="number" value={a.pct} onChange={e=>upd(i,'pct',e.target.value)} style={{width:70,padding:'8px 12px',fontSize:13,textAlign:'center'}} />
+                <span style={{fontSize:12,color:'var(--text-muted)'}}>%</span>
+                {salNum>0 && <span style={{fontSize:14,fontWeight:700,color:a.color}}>{money(Math.round(salNum*a.pct/100))}원</span>}
+              </div>
+            </div>
+            <div style={{cursor:'pointer',color:'var(--text-muted)',padding:6}} onClick={()=>setAccts(p=>p.filter((_,j)=>j!==i))}>{Icon.trash()}</div>
+          </div>
+        </div>
+      ))}
+
+      <div style={{display:'flex',gap:8,marginTop:8}}>
+        <button className="btn btn-ghost" style={{flex:1}} onClick={()=>setAccts(p=>[...p,{name:'새 통장',pct:0,color:'#64748b'}])}>+ 통장</button>
+        <button className="btn btn-primary" style={{flex:1}} onClick={save}>저장</button>
+      </div>
+
+      {salNum>0 && totPct===100 && (
+        <div className="card" style={{marginTop:16,padding:18,background:'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(168,85,247,0.04))',borderColor:'rgba(99,102,241,0.15)'}}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>📋 월 이체 플랜</div>
+          {accts.map((a,i) => (
+            <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:i<accts.length-1?'1px solid var(--border)':'none'}}>
+              <span style={{display:'flex',alignItems:'center',gap:8,fontSize:13}}>
+                <span style={{width:10,height:10,borderRadius:5,background:a.color,display:'inline-block'}} />
+                {a.name}
+                <span style={{fontSize:11,color:'var(--text-muted)'}}>({a.pct}%)</span>
+              </span>
+              <span style={{fontWeight:700,fontSize:14}}>{money(Math.round(salNum*a.pct/100))}원</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===========================
+// MODALS
+// ===========================
+function ModalSheet({children, onClose}) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle" />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function TaskModal({ onAdd, onClose }) {
+  const [title, setTitle] = useState('');
+  const [cat, setCat] = useState('daily');
+  const [time, setTime] = useState('');
+  const [pri, setPri] = useState(2);
+  const ref = useRef(null);
+  useEffect(()=>{setTimeout(()=>ref.current?.focus(),200)},[]);
+
+  const submit = () => {
+    if(!title.trim()) return;
+    onAdd({title:title.trim(),cat,time:parseInt(time)||null,priority:pri,due:today()});
+    onClose();
+  };
+
+  return (
+    <ModalSheet onClose={onClose}>
+      <div style={{fontSize:17,fontWeight:800,marginBottom:16}}>할 일 추가</div>
+      <input ref={ref} className="input" placeholder="뭘 해야 해? (짧게!)" value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} style={{marginBottom:14,fontSize:16}} />
+
+      <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginBottom:6}}>카테고리</div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        {TASK_CAT.map(c => (
+          <span key={c.id} className={`chip ${cat===c.id?'chip-active':''}`} onClick={()=>setCat(c.id)}
+            style={cat===c.id?{}:{borderColor:`${c.color}55`,color:c.color}}>{c.emoji} {c.label}</span>
+        ))}
+      </div>
+
+      <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginBottom:6}}>소요 시간</div>
+      <div style={{display:'flex',gap:6,marginBottom:14}}>
+        {[5,15,30,60,120].map(t => (
+          <span key={t} className={`chip ${time==t?'chip-active':''}`} onClick={()=>setTime(t)} style={{fontSize:12}}>{t<60?t+'분':t/60+'시간'}</span>
+        ))}
+      </div>
+
+      <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginBottom:6}}>우선순위</div>
+      <div style={{display:'flex',gap:6,marginBottom:20}}>
+        {[{v:3,l:'🔴 높음'},{v:2,l:'🟡 보통'},{v:1,l:'🟢 낮음'}].map(p => (
+          <span key={p.v} className={`chip ${pri===p.v?'chip-active':''}`} onClick={()=>setPri(p.v)} style={{fontSize:12}}>{p.l}</span>
+        ))}
+      </div>
+
+      <button className="btn btn-primary" style={{width:'100%',padding:14,fontSize:15}} onClick={submit}>추가하기</button>
+    </ModalSheet>
+  );
+}
+
+function TxnModal({ onAdd, onClose }) {
+  const [type, setType] = useState('expense');
+  const [amt, setAmt] = useState('');
+  const [cat, setCat] = useState('food');
+  const [memo, setMemo] = useState('');
+  const [date, setDate] = useState(today());
+
+  const submit = () => {
+    const n=parseInt(amt); if(!n||n<=0)return;
+    onAdd({type,amount:n,cat,memo:memo.trim(),date});
+    onClose();
+  };
+
+  return (
+    <ModalSheet onClose={onClose}>
+      <div style={{fontSize:17,fontWeight:800,marginBottom:16}}>수입/지출 기록</div>
+
+      <div style={{display:'flex',gap:8,marginBottom:14}}>
+        <span className={`chip ${type==='income'?'chip-active':''}`} onClick={()=>setType('income')}
+          style={type==='income'?{background:'var(--accent-green)',borderColor:'var(--accent-green)'}:{}}>💰 수입</span>
+        <span className={`chip ${type==='expense'?'chip-active':''}`} onClick={()=>setType('expense')}
+          style={type==='expense'?{background:'var(--accent-red)',borderColor:'var(--accent-red)'}:{}}>💸 지출</span>
+      </div>
+
+      <input className="input" type="number" placeholder="금액" value={amt} onChange={e=>setAmt(e.target.value)} style={{marginBottom:10,fontSize:20,fontWeight:800}} />
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        {[3000,5000,10000,30000,50000,100000].map(a => (
+          <span key={a} className="chip" style={{fontSize:11}} onClick={()=>setAmt(a.toString())}>{money(a)}</span>
+        ))}
+      </div>
+
+      {type==='expense' && (
+        <>
+          <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginBottom:6}}>카테고리</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:14}}>
+            {EXP_CAT.map(c => (
+              <span key={c.id} className={`chip ${cat===c.id?'chip-active':''}`} onClick={()=>setCat(c.id)} style={{textAlign:'center',fontSize:12,justifyContent:'center'}}>
+                {c.emoji} {c.label}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      <input className="input" placeholder="메모 (선택)" value={memo} onChange={e=>setMemo(e.target.value)} style={{marginBottom:10}} />
+      <input className="input" type="date" value={date} onChange={e=>setDate(e.target.value)} style={{marginBottom:20}} />
+      <button className="btn btn-primary" style={{width:'100%',padding:14,fontSize:15}} onClick={submit}>기록하기</button>
+    </ModalSheet>
+  );
+}
+
+function FixedModal({ onAdd, onClose }) {
+  const [name, setName] = useState('');
+  const [amt, setAmt] = useState('');
+  const [day, setDay] = useState('25');
+
+  const presets = [{n:'월세',a:500000},{n:'통신비',a:50000},{n:'보험',a:100000},{n:'넷플릭스',a:17000},{n:'교통',a:55000},{n:'대출이자',a:300000},{n:'전기/가스',a:80000},{n:'인터넷',a:30000}];
+
+  const submit = () => {
+    if(!name.trim()||!parseInt(amt))return;
+    onAdd({name:name.trim(),amount:parseInt(amt),day:parseInt(day)||25});
+    onClose();
+  };
+
+  return (
+    <ModalSheet onClose={onClose}>
+      <div style={{fontSize:17,fontWeight:800,marginBottom:16}}>고정지출 추가</div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        {presets.map(p => (
+          <span key={p.n} className="chip" style={{fontSize:11}} onClick={()=>{setName(p.n);setAmt(p.a.toString())}}>{p.n}</span>
+        ))}
+      </div>
+      <input className="input" placeholder="항목명" value={name} onChange={e=>setName(e.target.value)} style={{marginBottom:8}} />
+      <input className="input" type="number" placeholder="월 금액" value={amt} onChange={e=>setAmt(e.target.value)} style={{marginBottom:8}} />
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20}}>
+        <span style={{fontSize:13,color:'var(--text-muted)',flexShrink:0}}>매월</span>
+        <input className="input" type="number" min="1" max="31" value={day} onChange={e=>setDay(e.target.value)} style={{width:80}} />
+        <span style={{fontSize:13,color:'var(--text-muted)'}}>일</span>
+      </div>
+      <button className="btn btn-primary" style={{width:'100%',padding:14,fontSize:15}} onClick={submit}>추가하기</button>
+    </ModalSheet>
+  );
+}
+
+function GoalModal({ onAdd, onClose }) {
+  const [name, setName] = useState('');
+  const [target, setTarget] = useState('');
+  const [emoji, setEmoji] = useState('🎯');
+
+  const presets = [{n:'비상금',e:'🆘',t:3000000},{n:'여행',e:'✈️',t:2000000},{n:'전자기기',e:'💻',t:1500000},{n:'이사',e:'🏠',t:5000000},{n:'자동차',e:'🚗',t:10000000}];
+  const emojis = ['🎯','💰','✈️','💻','🏠','🎓','🚗','💎','🎮','📱','👔','🏋️'];
+
+  const submit = () => {
+    if(!name.trim()||!parseInt(target))return;
+    onAdd({name:name.trim(),target:parseInt(target),emoji});
+    onClose();
+  };
+
+  return (
+    <ModalSheet onClose={onClose}>
+      <div style={{fontSize:17,fontWeight:800,marginBottom:16}}>저축 목표 추가</div>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        {presets.map(p => (
+          <span key={p.n} className="chip" style={{fontSize:11}} onClick={()=>{setName(p.n);setTarget(p.t.toString());setEmoji(p.e)}}>{p.e} {p.n}</span>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:4,marginBottom:12,flexWrap:'wrap'}}>
+        {emojis.map(e => (
+          <span key={e} style={{fontSize:22,cursor:'pointer',opacity:emoji===e?1:0.3,padding:3,transition:'opacity 0.2s'}} onClick={()=>setEmoji(e)}>{e}</span>
+        ))}
+      </div>
+      <input className="input" placeholder="목표 이름" value={name} onChange={e=>setName(e.target.value)} style={{marginBottom:8}} />
+      <input className="input" type="number" placeholder="목표 금액" value={target} onChange={e=>setTarget(e.target.value)} style={{marginBottom:20}} />
+      <button className="btn btn-primary" style={{width:'100%',padding:14,fontSize:15}} onClick={submit}>목표 만들기</button>
+    </ModalSheet>
+  );
+}
+
+function SettingsModal({ onClose, onExport, onImport, onReset }) {
+  const fileRef = useRef(null);
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if(onImport(ev.target.result)) alert('데이터를 성공적으로 불러왔어요!');
+      else alert('파일 형식이 올바르지 않아요.');
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <ModalSheet onClose={onClose}>
+      <div style={{fontSize:17,fontWeight:800,marginBottom:20}}>⚙️ 설정</div>
+
+      <div className="card" style={{padding:14,cursor:'pointer'}} onClick={onExport}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'rgba(99,102,241,0.1)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--accent-blue)'}}>{Icon.download()}</div>
+          <div>
+            <div style={{fontSize:14,fontWeight:600}}>데이터 백업</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>JSON 파일로 내보내기</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{padding:14,cursor:'pointer'}} onClick={()=>fileRef.current?.click()}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'rgba(16,185,129,0.1)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--accent-green)'}}>{Icon.upload()}</div>
+          <div>
+            <div style={{fontSize:14,fontWeight:600}}>데이터 복원</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>JSON 파일에서 불러오기</div>
+          </div>
+        </div>
+      </div>
+      <input ref={fileRef} type="file" accept=".json" onChange={handleImport} style={{display:'none'}} />
+
+      <div className="card" style={{padding:14,cursor:'pointer',borderColor:'rgba(239,68,68,0.2)'}} onClick={()=>{if(confirm('정말 초기화할까요? 모든 데이터가 삭제됩니다.')){localStorage.clear();onReset();}}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'rgba(239,68,68,0.1)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--accent-red)'}}>{Icon.trash()}</div>
+          <div>
+            <div style={{fontSize:14,fontWeight:600,color:'var(--accent-red)'}}>전체 초기화</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>모든 데이터 삭제 후 재시작</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{textAlign:'center',marginTop:20,fontSize:11,color:'var(--text-muted)'}}>
+        Brainflow v1.0 • ADHD-friendly Todo & Money
+      </div>
+    </ModalSheet>
+  );
+}
+
+// ===========================
+// RENDER
+// ===========================
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
